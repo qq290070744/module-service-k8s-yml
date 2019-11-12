@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: yhstore-goods
+  labels:
+    app: yhstore-goods
+spec:
+  type: NodePort
+  selector:
+    app: yhstore-goods
+  ports:
+  - name: http
+    port: 9012
+    targetPort: 9012
+    #nodePort: 32000
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yhstore-goods
+spec:
+  # 节点数，设置为多个可以实现负载均衡效果
+  replicas: 1
+  selector:
+    matchLabels:
+      app: yhstore-goods
+  template:
+    metadata:
+      labels:
+        app: yhstore-goods
+    spec:
+      hostAliases:
+      - ip: "192.168.0.200"
+        hostnames:
+        - "gz.yaohuiw.net"
+      - ip: "192.168.0.200"
+        hostnames:
+        - "login.yaohuiw.net"
+      - ip: "192.168.0.200"
+        hostnames:
+        - "pay.yaohuiw.net"
+      - ip: "192.168.0.200"
+        hostnames:
+        - "boss.yaohuiw.net"
+      containers:
+      - name: yhstore-goods
+       #镜像名
+        image: registry.cn-shenzhen.aliyuncs.com/jwh/yhstore-goods
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9012
+        env:
+        - name: JAVA_OPTS
+          value: -Xms1280m -Xmx1280m -Xmn48m -Xss228k -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/log
+        - name: PARAMS
+          value: --spring.profiles.active=dev --eureka.client.serviceUrl.defaultZone=http://eureka-0:8000/eureka/,http://eureka-1:8000/eureka/
+        volumeMounts:
+        - mountPath: /opt/logs
+          name: yhstore-goods-log
+      imagePullSecrets:
+      - name: aliyuncs
+      restartPolicy: Always
+      volumes:
+      - name: yhstore-goods-log
+        nfs:
+          server: 192.168.0.200
+          path: /home/kvm/k8s-vloume/yhstore-goods-log
+

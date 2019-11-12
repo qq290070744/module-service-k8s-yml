@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: eureka-0
+  labels:
+    app: eureka-0
+spec:
+  type: NodePort
+  selector:
+    app: eureka-0
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    nodePort: 32000
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eureka-0
+spec:
+  # 节点数，设置为多个可以实现负载均衡效果
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eureka-0
+  template:
+    metadata:
+      labels:
+        app: eureka-0
+    spec:
+      hostAliases:
+      - ip: "192.168.0.200"
+        hostnames:
+        - "gz.yaohuiw.net"
+      - ip: "192.168.0.200"
+        hostnames:
+        - "login.yaohuiw.net"
+      - ip: "192.168.0.200"
+        hostnames:
+        - "pay.yaohuiw.net"
+      - ip: "192.168.0.200"
+        hostnames:
+        - "boss.yaohuiw.net"
+      containers:
+      - name: eureka
+       #镜像名
+        image: registry.cn-shenzhen.aliyuncs.com/jwh/eureka-server
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        env:
+        - name: JAVA_OPTS
+          value: -Xms96m -Xmx96m -Xmn36m -Xss228k -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/log
+        - name: PARAMS
+          value: --spring.profiles.active=dev  --eureka.client.serviceUrl.defaultZone=http://eureka-1:8000/eureka/
+        volumeMounts:
+        - mountPath: /opt/logs
+          name: eureka-log
+      imagePullSecrets:
+      - name: aliyuncs
+      restartPolicy: Always
+      volumes:
+      - name: eureka-log
+        nfs:
+          server: 192.168.0.200
+          path: /home/kvm/k8s-vloume/eureka-log
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: eureka-1
+  labels:
+    app: eureka-1
+spec:
+  type: NodePort
+  selector:
+    app: eureka-1
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    nodePort: 32001
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eureka-1
+spec:
+  # 节点数，设置为多个可以实现负载均衡效果
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eureka-1
+  template:
+    metadata:
+      labels:
+        app: eureka-1
+    spec:
+      hostAliases:
+      - ip: "192.168.0.200"
+        hostnames:
+        - "gz.yaohuiw.net"
+      - ip: "192.168.0.200"
+        hostnames:
+        - "login.yaohuiw.net"
+      - ip: "192.168.0.200"
+        hostnames:
+        - "pay.yaohuiw.net"
+      - ip: "192.168.0.200"
+        hostnames:
+        - "boss.yaohuiw.net"
+      containers:
+      - name: eureka
+       #镜像名
+        image: registry.cn-shenzhen.aliyuncs.com/jwh/eureka-server
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        env:
+        - name: JAVA_OPTS
+          value: -Xms96m -Xmx96m -Xmn36m -Xss228k -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/log
+        - name: PARAMS
+          value: --spring.profiles.active=dev  --eureka.client.serviceUrl.defaultZone=http://eureka-0:8000/eureka/
+        volumeMounts:
+        - mountPath: /opt/logs
+          name: eureka-log
+      imagePullSecrets:
+      - name: aliyuncs
+      restartPolicy: Always
+      volumes:
+      - name: eureka-log
+        nfs:
+          server: 192.168.0.200
+          path: /home/kvm/k8s-vloume/eureka-log
